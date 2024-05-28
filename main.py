@@ -86,7 +86,7 @@ for x0 in range(8):
     p_hat = (X == x0).cumsum() / (1 + np.arange(ts_length))
 
     # Print the empirical and theoretical values
-    print(f'Состояние {x0 + 1}: эмпирическая частота = {p_hat[-1]}, стационарное распределение = {ψ_star[x0]},финальная вер-ть = {final_probabilities[x0+1]}')
+    print(f'Состояние {x0 + 1}: частота попадания = {p_hat[-1]}, стационарное распределение = {ψ_star[x0]}, финальная вер-ть = {final_probabilities[x0+1]}')
 
     # Plot the difference between empirical and theoretical values
     ax.plot(p_hat - ψ_star[x0], label=f'$x = {x0 + 1} $')
