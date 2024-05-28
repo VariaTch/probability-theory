@@ -80,11 +80,6 @@ final_vectors = [x0, x1, x2, x3]
 
 comparison = compare_with_final_vectors(percent_times, classes, final_vectors)
 
-# Вывод результатов
-print("Percentage of time in each state (empirical):")
-for state in range(1, transition_matrix.shape[0] + 1):
-    print(f"State {state}: {percent_times.get(state, 0):.2f}%")
-
 print("\nComparison with final vectors:")
 for class_states, result in comparison.items():
     print(f"Class {class_states}:")
