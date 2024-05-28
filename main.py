@@ -1,5 +1,8 @@
 import numpy as np
 import scipy.linalg
+import matplotlib.pyplot as plt
+import quantecon as qe
+import numpy as np
 
 # Определим матрицу вероятностей перехода
 transition_matrix = np.array([
@@ -35,53 +38,62 @@ for length in chain_lengths:
         print(f"Состояние {initial_state}: {trajectory}")
     print()
 
-# Классы состояний
-E0 = [4]
-E1 = [6]
-E2 = [2, 7]
-E3 = [1, 3, 5, 8]
+
+# изменим название матрицы, чтобы не путаться
+P = np.array([
+    [3, 0, 2, 0, 2, 0, 0, 3],
+    [0, 5, 0, 0, 0, 0, 5, 0],
+    [3, 0, 3, 1, 0, 0, 0, 3],
+    [0, 1, 0, 2, 2, 3, 2, 0],
+    [4, 0, 1, 0, 3, 0, 0, 2],
+    [0, 0, 3, 0, 3, 3, 1, 0],
+    [0, 0, 0, 3, 3, 0, 3, 1],
+    [2, 0, 4, 0, 2, 0, 0, 2]
+]) / 10
+
+# Create the Markov chain object
+mc = qe.MarkovChain(P)
+
+# Compute the stationary distribution
+ψ_star = mc.stationary_distributions[0]
+
+# Length of the time series
+ts_length = 1000
+
+# Simulate the Markov chain
+X = mc.simulate(ts_length)
+
+# Plotting setup
+fig, ax = plt.subplots(figsize=(9, 6))
+ax.set_ylim(-0.25, 0.25)
+ax.axhline(0, linestyle='dashed', lw=2, color='black', alpha=0.4)
 
 # Векторы финальных состояний
-x0 = [0]
-x1 = [0]
-x2 = [4/9, 5/9]
-x3 = [129/439, 113/439, 85/439, 112/439]
+final_probabilities = {
+    1: 0.2938,
+    2: 0.4444,
+    3: 0.2574,
+    4: 0,
+    5: 0.1936,
+    6: 0,
+    7: 0.5555,
+    8: 0.2551
+}
 
-# Длина траектории
-n_steps = 100000
+# Loop through each state
+for x0 in range(8):
+    # Calculate the fraction of time for each state
+    p_hat = (X == x0).cumsum() / (1 + np.arange(ts_length))
 
-# Начальное состояние
-initial_state = 1
+    # Print the empirical and theoretical values
+    print(f'Состояние {x0 + 1}: эмпирическая частота = {p_hat[-1]}, стационарное распределение = {ψ_star[x0]},финальная вер-ть = {final_probabilities[x0+1]}')
 
-# Генерация траектории
-trajectory = generate_markov_chain(transition_matrix, initial_state, n_steps)
+    # Plot the difference between empirical and theoretical values
+    ax.plot(p_hat - ψ_star[x0], label=f'$x = {x0 + 1} $')
+    ax.set_xlabel('t')
+    ax.set_ylabel(r'$\hat p_n(x) - \psi^* (x)$')
 
-# Подсчет времени нахождения в каждом состоянии
-unique, counts = np.unique(trajectory, return_counts=True)
-state_counts = dict(zip(unique, counts))
+# Add legend and show plot
+ax.legend()
+plt.show()
 
-# Вычисление процента времени нахождения в каждом состоянии
-percent_times = {state: count / n_steps * 100 for state, count in state_counts.items()}
-
-# Сравнение с векторами финальных состояний
-def compare_with_final_vectors(percent_times, classes, final_vectors):
-    comparison = {}
-    for class_states, final_vector in zip(classes, final_vectors):
-        class_states_tuple = tuple(class_states)  # Преобразуем список в кортеж
-        total_empirical = sum(percent_times.get(state, 0) for state in class_states)
-        comparison[class_states_tuple] = {
-            'empirical': [percent_times.get(state, 0) / total_empirical if total_empirical else 0 for state in class_states],
-            'theoretical': final_vector
-        }
-    return comparison
-
-classes = [E0, E1, E2, E3]
-final_vectors = [x0, x1, x2, x3]
-
-comparison = compare_with_final_vectors(percent_times, classes, final_vectors)
-
-print("\nComparison with final vectors:")
-for class_states, result in comparison.items():
-    print(f"Class {class_states}:")
-    for state, (empirical, theoretical) in zip(class_states, zip(result['empirical'], result['theoretical'])):
-        print(f"State {state}: Empirical = {empirical * 100:.2f}%, Theoretical = {theoretical * 100:.2f}%")
