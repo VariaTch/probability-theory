@@ -35,24 +35,26 @@ for length in chain_lengths:
         print(f"Состояние {initial_state}: {trajectory}")
     print()
 
-def compute_stationary_distribution(transition_matrix):
-    n = transition_matrix.shape[0]
-    q = transition_matrix.T - np.eye(n)
-    ones = np.ones((n, 1))
-    A = np.vstack((q, ones.T))
-    b = np.zeros((n + 1,))
-    b[-1] = 1
-    stationary_distribution = np.linalg.lstsq(A, b, rcond=None)[0]
-    return stationary_distribution
+# Классы состояний
+E0 = [4]
+E1 = [6]
+E2 = [2, 7]
+E3 = [1, 3, 5, 8]
+
+# Векторы финальных состояний
+x0 = [0]
+x1 = [0]
+x2 = [4/9, 5/9]
+x3 = [129/439, 113/439, 85/439, 112/439]
 
 # Длина траектории
 n_steps = 100000
 
 # Начальное состояние
-initial_state1 = 1
+initial_state = 1
 
 # Генерация траектории
-trajectory = generate_markov_chain(transition_matrix, initial_state1, n_steps)
+trajectory = generate_markov_chain(transition_matrix, initial_state, n_steps)
 
 # Подсчет времени нахождения в каждом состоянии
 unique, counts = np.unique(trajectory, return_counts=True)
@@ -61,21 +63,30 @@ state_counts = dict(zip(unique, counts))
 # Вычисление процента времени нахождения в каждом состоянии
 percent_times = {state: count / n_steps * 100 for state, count in state_counts.items()}
 
-# Вычисление стационарного распределения
-stationary_distribution = compute_stationary_distribution(transition_matrix) * 100
+# Сравнение с векторами финальных состояний
+def compare_with_final_vectors(percent_times, classes, final_vectors):
+    comparison = {}
+    for class_states, final_vector in zip(classes, final_vectors):
+        class_states_tuple = tuple(class_states)  # Преобразуем список в кортеж
+        total_empirical = sum(percent_times.get(state, 0) for state in class_states)
+        comparison[class_states_tuple] = {
+            'empirical': [percent_times.get(state, 0) / total_empirical if total_empirical else 0 for state in class_states],
+            'theoretical': final_vector
+        }
+    return comparison
+
+classes = [E0, E1, E2, E3]
+final_vectors = [x0, x1, x2, x3]
+
+comparison = compare_with_final_vectors(percent_times, classes, final_vectors)
 
 # Вывод результатов
-print("Процент времени нахождения (эмпирический):")
+print("Percentage of time in each state (empirical):")
 for state in range(1, transition_matrix.shape[0] + 1):
     print(f"State {state}: {percent_times.get(state, 0):.2f}%")
 
-print("\nStationary distribution (theoretical):")
-for state, prob in enumerate(stationary_distribution, 1):
-    print(f"State {state}: {prob:.2f}%")
-
-# Сравнение результатов
-print("\nComparison (empirical vs theoretical):")
-for state in range(1, transition_matrix.shape[0] + 1):
-    empirical = percent_times.get(state, 0)
-    theoretical = stationary_distribution[state - 1]
-    print(f"State {state}: Empirical = {empirical:.2f}%, Theoretical = {theoretical:.2f}%")
+print("\nComparison with final vectors:")
+for class_states, result in comparison.items():
+    print(f"Class {class_states}:")
+    for state, (empirical, theoretical) in zip(class_states, zip(result['empirical'], result['theoretical'])):
+        print(f"State {state}: Empirical = {empirical * 100:.2f}%, Theoretical = {theoretical * 100:.2f}%")
